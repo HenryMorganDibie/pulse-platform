@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import settings
 from src.core.db import close_pool, init_pool
 from src.persona.router import router as subjects_router
+from src.products.admin.router import router as admin_router
 from src.products.recommend.router import router as recommend_router
 from src.products.simulate.router import router as simulate_router
 from src.schemas.api import HealthResponse
@@ -63,6 +64,7 @@ app.add_middleware(
 app.include_router(subjects_router)
 app.include_router(simulate_router)
 app.include_router(recommend_router)
+app.include_router(admin_router)
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])

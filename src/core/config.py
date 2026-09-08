@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/pulse_platform"
     cors_origins: str = "http://localhost:3000"
 
+    # Single-operator admin auth (admin/ Next.js app) — a static secret
+    # compared with secrets.compare_digest, not a per-tenant credential and
+    # not stored/hashed in the DB. See src/core/admin_auth.py.
+    admin_secret: str = ""
+
     # Groq's catalog moves — llama-3.3-70b-versatile / llama-3.1-8b-instant
     # (pulse-agent's original choices) were both 404 model_not_found as of
     # 2026-09-08. Current larger/faster pair on this account. If either

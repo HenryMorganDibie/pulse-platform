@@ -8,7 +8,7 @@ old reasoning_trace field.
 from __future__ import annotations
 
 from src.persona.models import BehaviouralProfile, ContextualProfile, TextualProfile, ToneProfile, UserState
-from src.products.recommend.router import _decision_factors as recommend_factors
+from src.products.recommend.service import decision_factors as recommend_factors
 from src.products.simulate.agent import _decision_factors as simulate_factors
 from src.schemas.api import ItemDetailsIn
 
