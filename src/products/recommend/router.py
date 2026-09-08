@@ -92,7 +92,7 @@ async def recommend_endpoint(
             )
         )
 
-    pool = get_pool()
+    pool = await get_pool()
     await pool.execute(
         "insert into request_log (tenant_id, subject_id, product) values ($1, $2, 'recommend')",
         tenant.id,

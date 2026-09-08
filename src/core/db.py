@@ -1,8 +1,14 @@
 """
 Pulse Platform — Postgres connection pool.
 
-One asyncpg pool for the process, created on FastAPI startup and closed on
-shutdown. Every query goes through this — no per-request connections.
+One asyncpg pool for the process, normally created on FastAPI startup and
+closed on shutdown via init_pool()/close_pool() (wired into main.py's
+lifespan). get_pool() additionally self-initializes on first use if that
+hasn't happened yet — ASGI lifespan support on serverless platforms (Vercel's
+Python runtime included) isn't something to bet request-correctness on
+sight-unseen, especially on a cold start of a fresh instance. The lock makes
+concurrent first-requests-on-a-cold-instance wait for one shared pool instead
+of racing to create several.
 
 Neon's pooled endpoint (and Supabase's, if this ever moves back) is a
 PgBouncer-style transaction pooler: it doesn't support asyncpg's default
@@ -21,6 +27,7 @@ stripped here and replaced with the equivalent `ssl=` kwarg.
 
 from __future__ import annotations
 
+import asyncio
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 import asyncpg
@@ -28,6 +35,7 @@ import asyncpg
 from src.core.config import settings
 
 _pool: asyncpg.Pool | None = None
+_init_lock = asyncio.Lock()
 
 _UNSUPPORTED_QUERY_PARAMS = {"sslmode", "channel_binding"}
 
@@ -38,9 +46,8 @@ def _to_asyncpg_dsn(url: str) -> str:
     return urlunsplit(parts._replace(query=urlencode(kept)))
 
 
-async def init_pool() -> None:
-    global _pool
-    _pool = await asyncpg.create_pool(
+async def _create_pool() -> asyncpg.Pool:
+    return await asyncpg.create_pool(
         _to_asyncpg_dsn(settings.database_url),
         ssl="require",
         min_size=0,
@@ -49,14 +56,23 @@ async def init_pool() -> None:
     )
 
 
+async def init_pool() -> None:
+    global _pool
+    async with _init_lock:
+        if _pool is None:
+            _pool = await _create_pool()
+
+
 async def close_pool() -> None:
     global _pool
-    if _pool is not None:
-        await _pool.close()
-        _pool = None
+    async with _init_lock:
+        if _pool is not None:
+            await _pool.close()
+            _pool = None
 
 
-def get_pool() -> asyncpg.Pool:
+async def get_pool() -> asyncpg.Pool:
     if _pool is None:
-        raise RuntimeError("DB pool not initialised — call init_pool() on startup first")
+        await init_pool()
+    assert _pool is not None
     return _pool

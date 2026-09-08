@@ -35,7 +35,7 @@ async def get_current_tenant(
     api_key = authorization.removeprefix("Bearer ").strip()
     key_hash = hash_api_key(api_key)
 
-    pool = get_pool()
+    pool = await get_pool()
     row = await pool.fetchrow(
         """
         select t.id, t.name, t.plan

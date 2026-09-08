@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_or_create_subject(tenant_id: str, external_id: str) -> str:
-    pool = get_pool()
+    pool = await get_pool()
     row = await pool.fetchrow(
         """
         insert into subjects (tenant_id, external_id)
@@ -58,7 +58,7 @@ def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
 
 async def add_review_record(subject_id: str, record: ReviewRecord) -> None:
     """Append a review and mark the cached persona stale so it's rebuilt on next read."""
-    pool = get_pool()
+    pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
@@ -102,7 +102,7 @@ async def _fetch_history(conn: asyncpg.Connection, subject_id: str) -> List[Revi
 
 
 async def get_or_build_user_state(subject_id: str) -> UserState:
-    pool = get_pool()
+    pool = await get_pool()
 
     async with pool.acquire() as conn:
         cached = await conn.fetchrow(

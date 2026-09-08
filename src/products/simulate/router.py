@@ -23,7 +23,7 @@ async def simulate_review_endpoint(
 
     result = await simulate_review(user_state, request.item)
 
-    pool = get_pool()
+    pool = await get_pool()
     await pool.execute(
         "insert into request_log (tenant_id, subject_id, product) values ($1, $2, 'simulate')",
         tenant.id,

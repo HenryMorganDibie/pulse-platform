@@ -31,7 +31,7 @@ def _item_text(item: CatalogItemIn) -> str:
 
 
 async def upsert_catalog_items(tenant_id: str, items: List[CatalogItemIn]) -> int:
-    pool = get_pool()
+    pool = await get_pool()
     count = 0
 
     for item in items:
@@ -79,7 +79,7 @@ async def retrieve_candidates(
     query_text = query.strip() if query and query.strip() else _fallback_query(user_state)
     query_vector = await embed_text(query_text)
 
-    pool = get_pool()
+    pool = await get_pool()
     # Over-fetch on semantic similarity, then re-rank blending in category
     # affinity, so a strong persona signal can surface an item that wasn't the
     # single closest embedding match.
