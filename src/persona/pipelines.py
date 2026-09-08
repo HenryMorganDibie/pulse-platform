@@ -21,8 +21,7 @@ from datetime import datetime, timezone
 from statistics import mean, stdev
 from typing import List, Optional
 
-from src.core.config import settings
-from src.persona.llm import call_groq, parse_json_object
+from src.persona.llm import call_llm, parse_json_object
 from src.persona.models import (
     BehaviouralProfile,
     ContextualProfile,
@@ -135,7 +134,7 @@ Reviews:
 {corpus}
 """
 
-        raw = await call_groq(system, user, model=settings.persona_model, max_tokens=400)
+        raw = await call_llm(system, user, tier="persona", max_tokens=400)
         data = parse_json_object(raw)
 
         return TextualProfile(

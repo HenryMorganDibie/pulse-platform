@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import List
+from datetime import datetime, timezone
+from typing import List, Optional
 
 import asyncpg
 
@@ -43,6 +44,18 @@ async def get_or_create_subject(tenant_id: str, external_id: str) -> str:
     return str(row["id"])
 
 
+def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+    """asyncpg needs an actual datetime for a timestamptz param, not an ISO string."""
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        logger.warning("Unparseable review timestamp %r — storing as null", value)
+        return None
+
+
 async def add_review_record(subject_id: str, record: ReviewRecord) -> None:
     """Append a review and mark the cached persona stale so it's rebuilt on next read."""
     pool = get_pool()
@@ -58,7 +71,7 @@ async def add_review_record(subject_id: str, record: ReviewRecord) -> None:
                 record.category,
                 record.rating,
                 record.text,
-                record.timestamp,
+                _parse_timestamp(record.timestamp),
             )
             await conn.execute(
                 "update user_states set stale = true where subject_id = $1",

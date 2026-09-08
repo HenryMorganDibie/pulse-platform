@@ -1,7 +1,7 @@
 -- Pulse Platform — initial schema
 -- Run against Supabase (or any Postgres with the pgvector extension available).
 
-create extension if not exists pgvector;
+create extension if not exists vector;   -- pgvector package, SQL extension name is "vector"
 create extension if not exists pgcrypto; -- gen_random_uuid()
 
 -- ---------------------------------------------------------------------------

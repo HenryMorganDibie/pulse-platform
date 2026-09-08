@@ -1,40 +1,19 @@
 """
-Pulse Platform — tenant API key auth.
+Pulse Platform — tenant API key auth (FastAPI request dependency).
 
-Keys are generated as `pk_live_<32 random url-safe chars>`, shown to the tenant
-exactly once at creation (via scripts/create_tenant.py — see that file for why
-there is no public tenant-registration endpoint). Only a SHA-256 hash is
-stored, so a lookup is a plain indexed equality query (unlike bcrypt, which is
-deliberately non-indexable and meant for username-scoped password checks, not
-secret-scoped API key lookups).
-
-Keys live in their own `api_keys` table (not a column on `tenants`) so a
-compromised key can be revoked — `revoked_at` set — without touching the
-tenant row, and so a tenant can hold more than one active key later without a
-schema change.
+Key generation/hashing lives in api_keys.py (no FastAPI dependency, so admin
+scripts don't need the web framework installed). This module adds the
+request-scoped lookup on top: verify the Bearer token, resolve the tenant.
 """
 
 from __future__ import annotations
 
-import hashlib
-import secrets
 from dataclasses import dataclass
 
 from fastapi import Header, HTTPException, status
 
+from src.core.api_keys import hash_api_key
 from src.core.db import get_pool
-
-KEY_PREFIX_LEN = 12  # "pk_live_" + 4 chars — enough to distinguish keys in a list
-
-
-def generate_api_key() -> tuple[str, str]:
-    """Returns (full_key, key_prefix). Only the caller sees full_key."""
-    full_key = f"pk_live_{secrets.token_urlsafe(24)}"
-    return full_key, full_key[:KEY_PREFIX_LEN]
-
-
-def hash_api_key(key: str) -> str:
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
 @dataclass

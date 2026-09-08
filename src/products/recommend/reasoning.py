@@ -13,8 +13,7 @@ from __future__ import annotations
 import logging
 from typing import List, Tuple
 
-from src.core.config import settings
-from src.persona.llm import call_groq, parse_json_object
+from src.persona.llm import call_llm, parse_json_object
 from src.persona.models import UserState
 from src.products.recommend.models import CandidateItem
 from src.products.recommend.retrieval import retrieve_candidates
@@ -67,7 +66,7 @@ Return JSON with exactly these keys:
 """
 
     try:
-        raw = await call_groq(system, user_prompt, model=settings.persona_model, max_tokens=250)
+        raw = await call_llm(system, user_prompt, tier="persona", max_tokens=250)
         data = parse_json_object(raw)
 
         intent = data.get("intent", "general recommendation")

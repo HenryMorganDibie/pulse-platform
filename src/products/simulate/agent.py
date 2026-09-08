@@ -23,8 +23,7 @@ from __future__ import annotations
 import logging
 from typing import List, Tuple
 
-from src.core.config import settings
-from src.persona.llm import call_groq, parse_json_object
+from src.persona.llm import call_llm, parse_json_object
 from src.persona.models import ToneProfile, UserState
 from src.schemas.api import ItemDetailsIn, SimulateReviewResponse
 
@@ -69,7 +68,7 @@ Return:
 """
 
     try:
-        raw = await call_groq(system, user_prompt, model=settings.fast_model, max_tokens=120)
+        raw = await call_llm(system, user_prompt, tier="fast", max_tokens=120)
         data = parse_json_object(raw)
 
         predicted = round(
@@ -105,7 +104,7 @@ Return:
 """
 
     try:
-        raw = await call_groq(system, user_prompt, model=settings.fast_model, max_tokens=220)
+        raw = await call_llm(system, user_prompt, tier="fast", max_tokens=220)
         data = parse_json_object(raw)
 
         review_text = str(data.get("review_text", "")).strip()
@@ -132,7 +131,7 @@ Return:
 """
 
     try:
-        raw = await call_groq(system, user_prompt, model=settings.fast_model, max_tokens=100)
+        raw = await call_llm(system, user_prompt, tier="fast", max_tokens=100)
         data = parse_json_object(raw)
 
         score = round(min(1.0, max(0.0, float(data.get("quality_score", 0.75)))), 2)

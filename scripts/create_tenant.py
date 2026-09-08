@@ -23,7 +23,7 @@ import asyncpg
 
 sys.path.insert(0, ".")
 
-from src.core.auth import generate_api_key, hash_api_key
+from src.core.api_keys import generate_api_key, hash_api_key
 from src.core.config import settings
 
 

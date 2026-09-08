@@ -9,6 +9,7 @@ Then visit: http://localhost:8000/docs
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -20,6 +21,18 @@ from src.persona.router import router as subjects_router
 from src.products.recommend.router import router as recommend_router
 from src.products.simulate.router import router as simulate_router
 from src.schemas.api import HealthResponse
+
+# Every LLM call in this codebase deliberately falls back to named default
+# text/scores instead of raising (see persona/pipelines.py, products/*/agent.py,
+# ranking.py) — good for uptime, bad for noticing a total model failure. That
+# only works if the WARNING-level "X fallback used" logs it emits are actually
+# visible. Uvicorn's own access logs show regardless, but this app's loggers
+# are silent below root's default (WARNING-and-up *is* the default, but only
+# once something has actually called basicConfig — without it, library
+# loggers with no configured handler drop everything). Explicit here so a
+# silently-deprecated model (this bit once — see scripts/check_groq_models.py)
+# shows up as a log line instead of a plausible-looking 200 OK.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 
 @asynccontextmanager

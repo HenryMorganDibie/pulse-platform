@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.core.auth import generate_api_key, hash_api_key
+from src.core.api_keys import generate_api_key, hash_api_key
 
 
 def test_generated_key_has_expected_prefix_format():

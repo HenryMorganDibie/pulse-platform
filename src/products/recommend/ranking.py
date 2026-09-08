@@ -17,8 +17,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Tuple
 
-from src.core.config import settings
-from src.persona.llm import call_groq, parse_json_array
+from src.persona.llm import call_llm, parse_json_array
 from src.persona.models import UserState
 from src.products.recommend.models import CandidateItem, ScoredItem
 
@@ -64,7 +63,7 @@ Rules: predicted_rating 1-5, relevance_score 0-1, explanation is short and safe 
 """
 
     try:
-        raw = await call_groq(system, user_prompt, model=settings.fast_model, max_tokens=350)
+        raw = await call_llm(system, user_prompt, tier="fast", max_tokens=350)
     except Exception as exc:
         trace.append(f"Groq scoring call failed: {exc}")
         return [], trace
