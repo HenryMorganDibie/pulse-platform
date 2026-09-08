@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-# fill in GROQ_API_KEY and DATABASE_URL
+# fill in GROQ_API_KEY, HF_API_KEY, and DATABASE_URL
 ```
 
 ### 3. Run the database + API

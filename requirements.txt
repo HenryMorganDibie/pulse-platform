@@ -6,15 +6,15 @@ uvicorn[standard]>=0.30.0
 pydantic>=2.7.0
 pydantic-settings>=2.3.0
 
-# DB (Supabase Postgres + pgvector)
+# DB (Neon/Supabase Postgres + pgvector)
 asyncpg>=0.29.0
 pgvector>=0.2.5
 
-# LLM — Groq
+# LLM (Groq, Ollama) and embeddings (HuggingFace Inference API) — all plain
+# HTTP calls via httpx, no local model weights. See src/products/recommend/
+# embeddings.py for why: sentence-transformers/torch measured at 1.1GB
+# installed, far past Vercel's serverless function bundle limit.
 httpx>=0.27.0
-
-# Embeddings
-sentence-transformers>=3.0.0
 
 # Testing
 pytest>=8.2.0

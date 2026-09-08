@@ -52,6 +52,16 @@ intentionally changed" — not left ambiguous. Source: `HenryMorganDibie/pulse-a
   generalize across arbitrary tenant catalogs with arbitrary attribute
   schemas; a tenant-configurable scoring weight is a reasonable future
   addition if a customer asks for it, not built speculatively now.
+- **Embeddings are computed via a hosted API, not a local model load.**
+  `products/recommend/embeddings.py` originally loaded
+  sentence-transformers/all-MiniLM-L6-v2 locally via `SentenceTransformer(...)`
+  — this was the actual fix for pulse-agent's dead `embedding_tool.py` (see
+  "Deliberately discarded" below), and it worked, but pulled in torch:
+  measured at 1.1GB installed (540MB for torch alone) once tested
+  end-to-end, hard-blocking a Vercel serverless deploy (~250MB bundle limit).
+  Same model, same embedding space, now called over HTTP via HuggingFace's
+  Inference API (`HF_API_KEY`) instead — confirmed 2026-09-08 the deployed
+  bundle drops to ~55MB with this swap and the app is otherwise unchanged.
 - **Reasoning trace is no longer returned to callers.** The old API exposed
   `reasoning_trace: List[str]` verbatim, including internal fallback/exception
   text (e.g. `"Fallback rating used: {exc}"`). That trace is now logged

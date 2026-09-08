@@ -1,46 +1,54 @@
 """
 Pulse Platform — embedding helper.
 
-This is the piece pulse-agent never actually wired in: it declared
-sentence-transformers as a dependency and named a model in config.yaml, but
-src/tools/embedding_tool.py was never imported by anything, and retrieval ran
-on keyword-token overlap instead. Here, embeddings are computed on every
-catalog upsert and every recommend query, and similarity search happens in
-Postgres via pgvector (see migrations/001_init.sql, catalog_items.embedding).
-
-The model loads once per process (it's ~80MB, CPU-friendly) and `encode()` is
-blocking, so it runs off the event loop via asyncio.to_thread.
+Originally called sentence-transformers locally (loads torch), which is what
+pulse-agent's embedding_tool.py declared but never actually wired in — this
+version wires it in for real, but as a hosted API call instead of a local
+model load. torch + sentence-transformers measured at 1.1GB installed
+(540MB for torch alone), far past Vercel's ~250MB serverless function bundle
+limit — confirmed empirically 2026-09-08 when a local end-to-end test's
+`.venv` came in at that size. Calling the same model (all-MiniLM-L6-v2) via
+HuggingFace's hosted Inference API keeps the exact embedding space (no
+re-embedding needed if this ever changes back) while keeping the deployed
+bundle to just an httpx call.
 """
 
 from __future__ import annotations
 
-import asyncio
-from typing import TYPE_CHECKING, List
+from typing import List
+
+import httpx
 
 from src.core.config import settings
 
-if TYPE_CHECKING:
-    from sentence_transformers import SentenceTransformer
-
-_model: "SentenceTransformer | None" = None
+_HF_ROUTER_URL = "https://router.huggingface.co/hf-inference/models/{model}/pipeline/feature-extraction"
 
 
-def _get_model() -> "SentenceTransformer":
-    # Imported lazily so modules that only need retrieve_candidates' types
-    # (or that mock this function out in tests) don't have to pull in torch.
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-
-        _model = SentenceTransformer(settings.embedding_model)
-    return _model
-
-
-def _encode(text: str) -> List[float]:
-    model = _get_model()
-    vector = model.encode(text, normalize_embeddings=True)
-    return vector.tolist()
+class EmbeddingError(Exception):
+    pass
 
 
 async def embed_text(text: str) -> List[float]:
-    return await asyncio.to_thread(_encode, text)
+    if not settings.hf_api_key:
+        raise EmbeddingError("Missing HF_API_KEY")
+
+    model = settings.embedding_model.removeprefix("sentence-transformers/")
+    url = _HF_ROUTER_URL.format(model=f"sentence-transformers/{model}")
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            url,
+            headers={"Authorization": f"Bearer {settings.hf_api_key}"},
+            json={"inputs": text},
+        )
+
+    if response.status_code != 200:
+        raise EmbeddingError(f"HF Inference API {response.status_code}: {response.text[:300]}")
+
+    vector = response.json()
+    # A single string input returns a flat vector; guard against the
+    # nested-list shape HF returns for a list input, in case that ever changes.
+    if vector and isinstance(vector[0], list):
+        vector = vector[0]
+
+    return vector

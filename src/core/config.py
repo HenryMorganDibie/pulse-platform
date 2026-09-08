@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=(".env", ".env.local"), extra="ignore")
 
     groq_api_key: str = ""
+    hf_api_key: str = ""
     database_url: str = "postgresql://postgres:postgres@localhost:5432/pulse_platform"
     cors_origins: str = "http://localhost:3000"
 
